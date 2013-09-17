@@ -21,8 +21,8 @@ Dimensión de una geometría
 El concepto de dimensión se explica de una manera sencilla mediante el uso de algunos ejemplos:
 
 	* una entidad de tipo punto, tendrá dimensión 0
-	* una de tipo linea, la dimensión será 1
-	* mientras que una de tipo superficie, tendrá una dimensión igual a 2.
+	* una de tipo linea, tendrá dimensión 1
+	* una de tipo superficie, tendrá una dimensión igual a 2.
 	
 En |PG| utilizando una función especial podremos obtener el valor de esta dimensión. Si se trata de una colección de geometrías, el valor que se obtendrá será el de la dimensión de mayor valor de la colección.
 
