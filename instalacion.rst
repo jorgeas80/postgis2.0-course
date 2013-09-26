@@ -135,7 +135,7 @@ En los parámetros de seguridad, activaremos la encriptación de las claves de u
 
 	password_encryption = on
 
-Clientes: pgsql y pgadmin3
+Clientes: psql y pgadmin3
 ==========================
 
 psql

@@ -206,9 +206,7 @@ Permite calcular si dos objetos se encuentran a una distancia dada uno del otro.
 
 Ejemplo
 """""""
-Encontrar los puntos de interes a como maximo 2km de la oficina de turismo de **Bogotanisimo.com**
-
-::
+Encontrar los puntos de interes a como maximo 2km de la oficina de turismo de **Bogotanisimo.com**::
 	
 	# SELECT name
 	FROM points
@@ -228,6 +226,27 @@ Encontrar los puntos de interes a como maximo 2km de la oficina de turismo de **
           name          
 	------------------------
  	panaderia Los Hornitos
+
+
+Hemos aplicado una transformación geométrica a otro sistema de referencia (EPSG:21818), para poder medir distancias en metros. Nuestros datos originales usan grados en lugar de metros para las coordenadas.
+
+Otra manera de realizar la misma operación pero sin necesidad de transformar los datos a un sistema de referencia diferente para poder usar metros es usar el tipo de datos **geography** de PostGIS::
+
+	#SELECT name
+	FROM points
+	WHERE 
+		name is not null and
+		name != 'Bogotanisimo.com' and
+		ST_DWithin(
+		     geography(geom),
+		     (SELECT geography(geom)
+			FROM points
+			WHERE name='Bogotanisimo.com'),
+		     2000
+		   );
+
+
+El resultado es el mismo que el de la consulta anterior.
 
 
 JOINS espaciales

@@ -3,7 +3,7 @@
 *****************
 Análisis espacial
 *****************
-El análisis de datos con SIG tiene por finalidad para descubrir estructuras espaciales, asociaciones y relaciones entre los datos, así como para modelar fenómenos geográficos. Los resultados reflejan la naturaleza y calidad de los datos así como la pertinencia de los métodos y funciones aplicadas. Las tareas y transformaciones que se llevan a cabo en el análisis espacial precisan datos estructurados, programas con las funciones apropiadas y conocimientos sobre la naturaleza del problema, para definir los métodos de análisis.
+El análisis de datos con SIG tiene por finalidad descubrir estructuras espaciales, asociaciones y relaciones entre los datos, así como modelar fenómenos geográficos. Los resultados reflejan la naturaleza y calidad de los datos, además de la pertinencia de los métodos y funciones aplicadas. Las tareas y transformaciones que se llevan a cabo en el análisis espacial precisan datos estructurados, programas con las funciones apropiadas y conocimientos sobre la naturaleza del problema, para definir los métodos de análisis.
 
 El proceso convierte los datos en información útil para conocer un problema determinado. Es evidente que los resultados del análisis espacial añaden valor económico y, sobre todo, información y conocimiento a los datos geográficos
 
@@ -39,7 +39,15 @@ Genera una geometría a partir de la intersección de las geometrías que se les
 Práctica
 ^^^^^^^^
 
-	¿Qué ciudad de Costa Rica tiene más zonas fluviales en un radio de 20km?
+	¿Cuál es el área total de páramos contenidos en todos los barrios de Bogotá?
+	Pista: usar las tablas **barrios_de_bogota** y **paramoscundinamarca**
+
+
+	Resultado (BORRAR)::
+
+	#select sum(np.hectares) as total_area_ha 
+	from barrios_de_bogota b join paramoscundinamarca np
+	on st_intersects(b.geom, np.geom)
 	
 Unión
 -----

@@ -1,18 +1,17 @@
 .. |PG|  replace:: *PostGIS*
 .. |PSQL| replace:: *PostgreSQL*
+.. |PG_VERSION| replace:: *2.0*
 
 ********************************
 |PG|, características espaciales
 ********************************
 Introducción
 ============
-Para el curso que nos compete realizaremos las prácticas con la versión 2.0 de |PG| por ser la que dispone del módulo de Raster y de Topología. Para la instalación de este es necesario un conocimiento de conceptos de instalación y de compilación de librerías que exceden el objetivo de este curso. Se explicará la instalación de una versión anterior de |PG|, exactamente la 1.5 que es la que se encuentra disponible desde los repositorios con la que el alumno puede realizar la mayor parte de los ejercicios de este curso. Para una instalación de la versión |PG| 2.0 se remite al alumno al capítulo de referencias donde podrá encontrar abundante información.
-
-|PG| es una extensión espacial para |PSQL| que permite gestionar objetos geográficos, de tal manera que añade esta capacidad al SGBD |PSQL|. 
+Para el curso que nos compete realizaremos las prácticas con la versión 2.0 de |PG| por ser la que dispone del módulo de Raster y de Topología. |PG| es una extensión espacial para |PSQL| que permite gestionar objetos geográficos, de tal manera que añade esta capacidad al SGBD |PSQL|. 
  
 Instalación y configuración de |PG|
 ===================================
-Como ya se ha comentado la instalación de |PG| en su versión 1.5 la realizaremos desde los repositorios de nuestro sistema operativo.
+Como ya se ha comentado la instalación de |PG| en su versión |PG_VERSION| la realizaremos desde los repositorios de nuestro sistema operativo.
 
 Una vez que hayamos instalado PostgreSQL en nuestro equipo podremos instalar |PG| mediante::
 
@@ -44,14 +43,14 @@ se llaman *lwpostgis.sql* (o símplemente *postgis.sql*) y *spatial_ref_sys.sql*
 Para localizarlos podemos utilizar el comando *locate*::
 
 	$ locate postgis.sql
-	/usr/share/postgresql/8.4/contrib/postgis-1.5/postgis.sql
-	/usr/share/postgresql/8.4/contrib/postgis-1.5/uninstall_postgis.sql
-	/usr/share/postgresql/9.1/contrib/postgis-1.5/postgis.sql
-	/usr/share/postgresql/9.1/contrib/postgis-1.5/uninstall_postgis.sql
+	/usr/share/postgresql/8.4/contrib/postgis-|PG_VERSION|/postgis.sql
+	/usr/share/postgresql/8.4/contrib/postgis-|PG_VERSION|/uninstall_postgis.sql
+	/usr/share/postgresql/9.1/contrib/postgis-|PG_VERSION|/postgis.sql
+	/usr/share/postgresql/9.1/contrib/postgis-|PG_VERSION|/uninstall_postgis.sql
 	
 	$ locate spatial_ref_sys.sql
-	/usr/share/postgresql/8.4/contrib/postgis-1.5/spatial_ref_sys.sql
-	/usr/share/postgresql/9.1/contrib/postgis-1.5/spatial_ref_sys.sql
+	/usr/share/postgresql/8.4/contrib/postgis-|PG_VERSION|/spatial_ref_sys.sql
+	/usr/share/postgresql/9.1/contrib/postgis-|PG_VERSION|/spatial_ref_sys.sql
 
 Una vez localizados dos ficheros de la misma versión, es necesario ejecutarlos
 en el servidor. Existen dos formas de hacerlo con *psql*: el parámetro -f y
@@ -60,23 +59,23 @@ comandos del sistema y especificaríamos el fichero .sql que queremos ejecutar
 con dicho parámetro. Para que el fichero se ejecute en la base de datos que
 nos interesa hay que especificar también el parámetro -d visto anteriormente::
 
-	$ psql -U postgres -d template_postgis -f /usr/share/postgresql/9.1/contrib/postgis-1.5/postgis.sql
-	$ psql -U postgres -d template_postgis -f /usr/share/postgresql/9.1/contrib/postgis-1.5/spatial_ref_sys.sql
+	$ psql -U postgres -d template_postgis -f /usr/share/postgresql/9.1/contrib/postgis-|PG_VERSION|/postgis.sql
+	$ psql -U postgres -d template_postgis -f /usr/share/postgresql/9.1/contrib/postgis-|PG_VERSION|/spatial_ref_sys.sql
 
 La opción de usar el comando \\i consiste en entrar al modo interactivo de *psql*
 conectando a la base de datos de interés y ejecutando el fichero con \\i::
 
 	$ psql -U postgres -d template_postgis
-	=# \i /usr/share/postgresql/9.1/contrib/postgis-1.5/postgis.sql
-	=# \i /usr/share/postgresql/9.1/contrib/postgis-1.5/spatial_ref_sys.sql
+	=# \i /usr/share/postgresql/9.1/contrib/postgis-|PG_VERSION|/postgis.sql
+	=# \i /usr/share/postgresql/9.1/contrib/postgis-|PG_VERSION|/spatial_ref_sys.sql
 	
 o también se puede entrar a la base de datos por defecto (*postgres*) y
 conectar interactivamente a nuestra base de datos luego con \\c::
 
 	$ psql -U postgres
 	=# \c template_postgis
-	=# \i /usr/share/postgresql/9.1/contrib/postgis-1.5/postgis.sql
-	=# \i /usr/share/postgresql/9.1/contrib/postgis-1.5/spatial_ref_sys.sql
+	=# \i /usr/share/postgresql/9.1/contrib/postgis-|PG_VERSION|/postgis.sql
+	=# \i /usr/share/postgresql/9.1/contrib/postgis-|PG_VERSION|/spatial_ref_sys.sql
 	
 Tras esta operación se puede observar que han aparecido dos 
 nuevas tablas: *geometry_columns* y *spatial_ref_sys*, además de
