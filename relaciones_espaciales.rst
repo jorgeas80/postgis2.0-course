@@ -71,25 +71,26 @@ Ejemplo
 ^^^^^^^
 ::
 	
-	# SELECT name, the_geom, ST_AsText(the_geom)
-	FROM nyc_subway_stations
-	WHERE name = 'Broad St';
+	# SELECT name, geom, ST_AsText(geom)
+	FROM points
+	WHERE name = 'Casa de Piedra';
 
 ::
 
-	   name   |                      the_geom                      |      st_astext
-	----------+----------------------------------------------------+-----------------------
-	 Broad St | 0101000020266900000EEBD4CF27CF2141BC17D69516315141 | POINT(583571 4506714)	
+		name   	|                        geom                        |          st_astext 
+	----------------+----------------------------------------------------+------------------------------
+ 	 Casa de Piedra | 0101000020E6100000A6CC727E2F8052C0F9AF62A70EA81240 | POINT(-74.0028988 4.6641184)
 
-Si usamos el valor obtenido en ``the_geom`` y consultamos a la base de datos::
+Si usamos el valor obtenido en ``geom`` y consultamos a la base de datos::
 
 	# SELECT name
-	FROM nyc_subway_stations
-	WHERE ST_Equals(the_geom, '0101000020266900000EEBD4CF27CF2141BC17D69516315141');
+	FROM points
+	WHERE ST_Equals(geom, '0101000020E6100000A6CC727E2F8052C0F9AF62A70EA81240');
 
 ::
-
-	Broad St
+     	name      
+	---------------
+	Casa de Piedra
 
 ST_Intersects, ST_Disjoint, ST_Crosses y ST_Overlaps
 ----------------------------------------------------
@@ -129,29 +130,25 @@ compara dos geometrías de la misma dimensión y devuelve TRUE si su intersecci�
 
 Ejemplo
 """""""
+Dada la siguiente imagen
 
-Compruebe el barrio donde se encuentra la estación de metro *Broad Street*::
+	.. image:: _images/intersection.png
+		:scale: 50 %
 
-	# SELECT name, ST_AsText(the_geom)
-	FROM nyc_subway_stations
-	WHERE name = 'Broad St';
+Vemos que el poligono **16** intersecta a los poligonos **8** y **15**::
+
+	# SELECT gid 
+	FROM barrios_de_bogota 
+	WHERE ST_Intersects(geom, (select geom from barrios_de_bogota where gid = 16))
+	AND gid != 16
 	
 ::
 
-	POINT(583571 4506714)
-	
-::
+ 	gid 
+	-----
+   	8
+  	15
 
-	# SELECT name, boroname
-	FROM nyc_neighborhoods
-	WHERE ST_Intersects(the_geom, ST_GeomFromText('POINT(583571 4506714)',26918));
-	
-::
-
-		     name        | boroname
-	--------------------+-----------
-	 Financial District | Manhattan
-	
 
 ST_Touches
 ^^^^^^^^^^
@@ -178,29 +175,20 @@ Devuelve TRUE si la geometría B está contenida completamente en la geometría 
 Ejemplo
 """""""
 
-¿En que barrio se encuentra la estación Brook Ave?
+¿En que barrio se encuentra el Museo del 20 de Julio?
 
 ::
 
-	# SELECT ST_AsText(the_geom) 
-	FROM nyc_subway_stations 
-	WHERE name='Brook Ave';
+	#SELECT b.name from barrios_de_bogota b, points p 
+	WHERE ST_Contains(b.geom, p.geom) and
+	p.name = 'Museo del 20 de Julio'
 	
 ::
 
-	POINT(591158.462734484 4517957.5457551)
+	     name      
+	---------------
+ 	San Cristóbal
 	
-::
-
-	# SELECT boroname 
-	FROM nyc_neighborhoods as n 
-	WHERE ST_Contains(n.the_geom, ST_GeometryFromText('POINT(591158.462734484 4517957.5457551)',26918));
-	
-:: 
-
-	 boroname  
-	-----------
-	 The Bronx
 
 ST_Distance and ST_DWithin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -218,45 +206,54 @@ Permite calcular si dos objetos se encuentran a una distancia dada uno del otro.
 
 Ejemplo
 """""""
-Encontrar las calles que estén a menos de 10 metros de la estación de metro Broad Street
+Encontrar los puntos de interes a como maximo 2km de la oficina de turismo de **Bogotanisimo.com**
 
 ::
 	
 	# SELECT name
-	FROM nyc_streets
-	WHERE ST_DWithin(
-		     the_geom,
-		     ST_GeomFromText('POINT(583571 4506714)',26918),
-		     10
+	FROM points
+	WHERE 
+		name is not null and
+		name != 'Bogotanisimo.com' and
+		ST_DWithin(
+		     ST_Transform(geom, 21818),
+		     (SELECT ST_Transform(geom, 21818)
+			FROM points
+			WHERE name='Bogotanisimo.com'),
+		     2000
 		   );
 	
 ::
 
-	     name
-	--------------
-		Wall St
-		Broad St
-		Nassau St
+          name          
+	------------------------
+ 	panaderia Los Hornitos
+
 
 JOINS espaciales
 ================
-Permite combinar información de diferentes tablas usando relaciones espaciales como clvae dentro del JOIN. En los ejemplos anteriores hemos realizado el proceso en varios pasos. Usando JOINS espaciales, podremos realizarlos en un solo paso::
+Permite combinar información de diferentes tablas usando relaciones espaciales como clave dentro del JOIN. Es una de las caracteristicas más potentes de las bases de datos espaciales. 
 
-	# SELECT
-	  subways.name AS subway_name,
-	  neighborhoods.name AS neighborhood_name,
-	  neighborhoods.boroname AS borough
-	FROM nyc_neighborhoods AS neighborhoods
-	JOIN nyc_subway_stations AS subways
-	ON ST_Contains(neighborhoods.the_geom, subways.the_geom)
-	WHERE subways.name = 'Broad St';
-	
+Veamos un ejemplo: Los nombres de los barrios por los que cruza el rio Bogotá
+
 ::
 
-	 subway_name | neighborhood_name  |  borough
-	-------------+--------------------+-----------
-	 Broad St    | Financial District | Manhattan	
-	 
+	# SELECT b.name 
+	FROM barrios_de_bogota b JOIN waterways w 
+	ON ST_Crosses(b.geom, w.geom)
+	WHERE w.name = 'Rio Bogotá'
+
+::
+
+      	name      
+	----------------
+ 	Bosa
+ 	Ciudad Kennedy
+ 	Fontibón
+ 	Engativá
+ 	Suba
+
+
 Cualquier función que permita crear relaciones TRUE/FALSE entre dos tablas puede ser usada para manejar un JOIN espacial, pero comunmente las más usadas son:
 
 	* ST_Intersects
@@ -265,58 +262,37 @@ Cualquier función que permita crear relaciones TRUE/FALSE entre dos tablas pued
 	
 JOIN y GROUP BY
 ---------------
-Para la pregunta ¿Cúal es la población de los barrios de Manhattan agrupada por color de piel?, habremos de combinar la información del censo con los límites de los barrios con la restricción de que sea para el barrio de Manhattan::
 
-	# SELECT
-	  neighborhoods.name AS neighborhood_name,
-	  Sum(census.popn_total) AS population,
-	  Round(100.0 * Sum(census.popn_white) / Sum(census.popn_total),1) AS white_pct,
-	  Round(100.0 * Sum(census.popn_black) / Sum(census.popn_total),1) AS black_pct
-	FROM nyc_neighborhoods AS neighborhoods
-	JOIN nyc_census_blocks AS census
-	ON ST_Intersects(neighborhoods.the_geom, census.the_geom)
-	WHERE neighborhoods.boroname = 'Manhattan'
-	GROUP BY neighborhoods.name
-	ORDER BY white_pct DESC;
+El uso de las relaciones espaciales junto con funciones de agregacion, como **group by**, permite operaciones muy poderosas con nuestros datos. Veamos un ejemplo sencillo: El numero de escuelas que hay en cada uno de los barrios de Bogota::
+
+	#select b.name, count(p.type) as hospitals from barrios_de_bogota b join
+	points p on st_contains(b.geom, p.geom) where p.type = 'hospital' 
+	group by b.name order by hospitals desc
 
 ::
 
-	  neighborhood_name  | population | white_pct | black_pct
-	---------------------+------------+-----------+-----------
-	 Carnegie Hill       |      19909 |      91.6 |       1.5
-	 North Sutton Area   |      21413 |      90.3 |       1.2
-	 West Village        |      27141 |      88.1 |       2.7
-	 Upper East Side     |     201301 |      87.8 |       2.5
-	 Greenwich Village   |      57047 |      84.1 |       3.3
-	 Soho                |      15371 |      84.1 |       3.3
-	 Murray Hill         |      27669 |      79.2 |       2.3
-	 Gramercy            |      97264 |      77.8 |       5.6
-	 Central Park        |      49284 |      77.8 |      10.4
-	 Tribeca             |      13601 |      77.2 |       5.5
-	 Midtown             |      70412 |      75.9 |       5.1
-	 Chelsea             |      51773 |      74.7 |       7.4
-	 Battery Park        |       9928 |      74.1 |       4.9
-	 Upper West Side     |     212499 |      73.3 |      10.4
-	 Financial District  |      17279 |      71.3 |       5.3
-	 Clinton             |      26347 |      64.6 |      10.3
-	 East Village        |      77448 |      61.4 |       9.7
-	 Garment District    |       6900 |      51.1 |       8.6
-	 Morningside Heights |      41499 |      50.2 |      24.8
-	 Little Italy        |      14178 |      39.4 |       1.2
-	 Yorkville           |      57800 |      31.2 |      33.3
-	 Inwood              |      50922 |      29.3 |      14.9
-	 Lower East Side     |     104690 |      28.3 |       9.0
-	 Washington Heights  |     187198 |      26.9 |      16.3
-	 East Harlem         |      62279 |      20.2 |      46.2
-	 Hamilton Heights    |      71133 |      14.6 |      41.1
-	 Chinatown           |      18195 |      10.3 |       4.2
-	 Harlem              |     125501 |       5.7 |      80.5	
-	 
-1. La clausula JOIN crea una tabla virtual que incluye los datos de los barrios y de los censos
-2. WHERE filtra la tabla virtual solo para las columnas de Manhattan
-3. Las filas resultantes son agrupadas por el nombre del barrio y rellenadas con la función de agregación Sum() de los valores de población
+	name      | schools 
+  ----------------+---------
+   Suba           |       8
+   Usaquén        |       5
+   Los Mártires   |       3
+   Teusaquillo    |       3
+   Antonio Nariño |       3
+   Tunjuelito     |       2
+   Ciudad Kennedy |       2
+   Engativá       |       1
+   Fontibón       |       1
+   Santa Fé       |       1
+   Barrios Unidos |       1
+   Ciudad Bolívar |       1
+ 
 
-Práctica
+
+1. La clausula JOIN crea una tabla virtual que incluye los datos de los barrios y de los puntos de interés
+2. WHERE filtra la tabla virtual solo para las columnas en las que el punto de interés es un hospital
+3. Las filas resultantes son agrupadas por el nombre del barrio y rellenadas con la función de agregación count().
+
+Prácticas
 ========
 
 1. Calcula la matriz DE-9IM entre AB y BA para las siguientes figuras:
@@ -364,22 +340,10 @@ Práctica
 		.. image::  _images/relations-exec/overlaps2.png	
 			:scale: 50 %
 	
-4. Utilizando el software JTS Test Builder, generar un ejemplo que cumpla cada una de las relaciones.
+4. Comprueba si estas geometrías son iguales: LINESTRING(0 0, 10 0) Y MULTILINESTRING((10 0, 5 0),(0 0, 5 0)).
 
-5. Comprueba si estas geometrías son iguales: LINESTRING(0 0, 10 0) Y MULTILINESTRING((10 0, 5 0),(0 0, 5 0)).
+5. Represente como texto el valor de la geometría del barrio 'Ciudad Bolivar'.
 
-6. Represente como texto el valor de la geometría de la calle 'Atlantic Commons'.
+6. ¿En que barrio se encuentra la Plaza de Las Americas? (Pista: buscar en tabla de edificios)
 
-7. ¿En que barrio se encuentra Atlantic Commons?
 
-8. ¿Qué calles colindan con Atlantic Commons?
-
-9. Aproximadamente, ¿cuánta gente vive en los 50 m alrededor de Atlantic Commons?
-
-10. ¿Cúal es la calle más larga de NY y que barrios cruza?
-
-11. ¿Qué estación de metro está en Little Italy? ¿Qué linea de metro es?
-
-12. ¿Cuales son los barrios por los que pasa la linea 6?. Recuerda que las lineas (routes) son de tipo texto y pueden estar compuestas por una o varias lineas (routes='B,D,6,V'). Utiliza la función ``strpos``
-
-13. Después del 11-S, el barrio Battery Park estuvo cerrado por varios dias. ¿Cuanta gente tuvo que ser evacuada?

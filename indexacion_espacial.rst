@@ -4,7 +4,7 @@
 *******************
 Indexación espacial
 *******************
-La indexación espacial es una de las funcionalidades importantes de las bases de datos espaciales. Los indices consiguen que las búsquedas espaciales en un gran número de datos sean eficientes. Sin indexación, la búsqueda se realizaria de manera secuencial teniendo que buscar en todos los registros de la base de datos. La indexación organiza los datos en una estructura de arbol que es recorrida rapidamente en la búsqueda de un registro.
+La indexación espacial es una de las funcionalidades importantes de las bases de datos espaciales. Los indices consiguen que las búsquedas espaciales en un gran número de datos sean eficientes. Sin idenxación, la búsqueda se realizaria de manera secuencial teniendo que buscar en todos los registros de la base de datos. La indexación organiza los datos en una estructura de arbol que es recorrida rapidamente en la búsqueda de un registro.
 
 Como funcionan los índices espaciales
 =====================================
@@ -33,13 +33,6 @@ La mayor parte de las funciones en |PG| (ST_Contains, ST_Intersects, ST_DWithin,
 
 Para hacer que una función utilice el índice, hay que hacer uso del operador **&&**. Para las geometrías, el operador **&&** significa "la caja que toca (touch) o superpone (overlap)" de la misma manera que para un número el operador **=** significa "valores iguales"
 
-Prácticas
-=========
-Práctica 1
-----------
-
-1. Compare los resultados de obtener la población del barrio West Village así como el tiempo necesario para ejecutar cada operación. Use el operador de caja en una si y en otra no.
-
 ANALYZE y VACUUM 
 ================
 El planificador de |PG| se encarga de mantener estadísticas sobre la distribución de los datos de cada columna de la tabla indexada. Por defecto |PSQL| ejecuta la estadísticas regularmente. Si hay algún cambio grande en la estructura de las tablas, es recomendable ejecutar un ``ANALYZE`` manualmente para actualizar estas estadísticas. Este comando obliga a |PSQL| a recorrer los datos de las tablas con columnas indexadas y actualizar sus estadísticas internas.
@@ -52,4 +45,10 @@ Hacer un ``VACUUM`` es crítico para la eficiencia de la base de datos. |PSQL| d
 	VACUUM ANALYZE [Nombre_tabla] ([Nombre_columna])
 	
 Esta orden actualiza las estadísticas y elimina los datos borrados que se encontraban marcados como eliminados.
+
+Prácticas
+=========
+
+1. Compare los resultados de obtener la población del barrio West Village así como el tiempo necesario para ejecutar cada operación. Use el operador de caja en una si y en otra no.
+
 

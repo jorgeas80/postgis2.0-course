@@ -1,5 +1,4 @@
 .. |PG| replace:: PostGIS
-.. |PR| replace:: PostGIS Raster
 
 **********************************
 Importación y exportación de datos
@@ -58,44 +57,54 @@ Realice la importación de los datos de la carpeta ``Curso/datos/Costa Rica/shp`
 	
 	Comprobar que se ha actualizado correctamente la tabla ``geometry_columns``
 	
-Importación ESRI shapes mediante shp2pgsql-gui
-==============================================
+Exportación desde |PG| a archivos de tipo ESRI Shapefile
+========================================================
 
-Windows
--------
+Para este proceso utilizaremos la herramienta ``pgsql2shp``. Con ella podremos convertir los datos de nuestra base de datos en archivos ESRI Shape. Igual que para el caso anterior, la herramienta se utilizará desde la linea de comandos::
 
-Hay binario: http://postgis.net/windows_downloadsx
+	$ pgsql2shp [<opciones>] <basedatos> [<esquema>.]<tabla>
+   $ pgsql2shp [<opciones>] <basedatos> <consulta>
+   
+las opciones serán::
 
-	..warning:: TODO
+	* **-f <nombrearchivo>**  Especifica el nombre del archivo a crear
+	* **-h <host>**  Indica el servidor donde realizará la conexión
+	* **-p <puerto>**  Permite indicar el puerto de la base de datos
+	* **-P <password>**  Contraseña
+	* **-u <user>** Usuario
+	* **-g <geometry_column>** Columna de geometría que será exportada
 
-Debian/[L|X]Ubuntu
-------------------
+Práctica
+--------
 
-Con apt: http://gis.stackexchange.com/questions/16181/how-can-i-enable-shapefile-gui-loader-in-pgadmin3
+	.. warning:: TODO	
 
-	..warning:: TODO
-
-Mac OS
-------
-
-No es viable (mencionar a KingChaos)
-
-Desde QGIS, se puede usar SPIT: http://docs.qgis.org/1.8/html/en/docs/user_manual/plugins/plugins_spit.html
-
-	::warning:: TODO
-
-
-
-Importación datos tabulares (CSV) a |PG|
-========================================
-
-Importación usando funciones PostgreSQL
----------------------------------------
-
-Importación usando GDAL/OGR
----------------------------
-
+GDAL/OGR
+========
 GDAL/OGR es una librería de lectura y escritura de formatos geoespaciales, tanto *Raster* con GDAL como *Vectorial* con OGR. Se trata de una librería de software libre ampliamente utilizada.
+
+ogrinfo
+-------
+``ogrinfo`` obtiene información de los datos vectoriales. Podremos utilizar esta herramienta para la obtención de esta información de las tablas que tenemos almacenadas en la base de datos. El uso se realiza a través de la consola::
+
+	$ ogrinfo [<opciones>] <ruta fuente datos>
+	
+Entre las opciones destacaremos::
+
+	* **-where** muestra los datos de las filas que cumplan la clausula
+	* **-sql** filtra la información mediante consultas SQL
+	* **-geom={YES/NO/SUMMARY}** modifica la visualización de la información de la columna geométrica 
+
+Para utilizar ``ogrinfo`` contra nuestra base de datos, debemos utilizar la opción ``PG:`` indicandole la cadena de conexión::
+
+	$ ogrinfo PG:"host=localhost user=usuario dbname=basedatos password=contraseña"
+
+seguidamente incluiremos cualquiera de las opciones anteriores. De esta manera por ejemplo podremos indicar::
+
+	$ ogrinfo PG:"host=localhost user=usuario dbname=basedatos password=contraseña" -sql "<una consulta>" <fuente de datos> 
+	
+ogr2ogr
+-------
 
 OGR es capaz de convertir a |PG| todos los formatos que maneja, y será capaz de exportar desde |PG| todos aquellos en los que tiene permitida la escritura. Ejecutando::
 
@@ -115,15 +124,6 @@ Otras opciones en referencia al formato de destino (las anteriores hacían refer
 	* **-lco VARIABLE=VALOR** Variables propias del driver de salida
 	* **-a_srs <srid>** asigna el SRID especificado a la capa de salida
 	* **-t_srs <srid>** Reproyecta la capa de salida según el SRID especificado 
-
-
-Práctica
---------
-
-	.. warning:: TODO
-
-Cargar un CSV o bien algo de batch import
-
 
 Importación datos OSM a PostGIS
 ===============================
@@ -176,84 +176,23 @@ algunas de las opciones se detallan a continuación:
 
 En caso de no disponer del SRID 900913 en nuestro |PG| podremos utilizar la definición que hay de él en ``osm2pgsql``. Simplemente ejecutaremos el script 900913.sql
 
+Práctica
+--------
 
+	.. warning:: TODO
+	
 osmosis
 -------
 
 Esta herramienta también realiza la importación de datos desde OSM a |PG|, pero a diferencia de la anterior, esta mantiene las relaciones entre los objetos de OSM importados. Se recomienda acudir a la documentación de la herramienta para comprender mejor su uso.
-
-Práctica
---------
-
-	.. warning:: TODO
-
-Proponer el ejercicio OSM que tengo en Evernote. O mostrarlo y proponer alguna variación.
-	
-
-Importación datos raster
-========================
-
-Usando raster2pgsql. También mencionar que se pueden crear datos raster usando funciones de |PR|:: 
-
-	http://postgis.net/docs/manual-2.1/using_raster_dataman.html#RT_Creating_Rasters
-
-Práctica
---------
-
-	.. warning:: TODO
-
-Cargar un raster o bien algo de batch import
-
-
-Exportación desde |PG| a archivos de tipo ESRI Shapefile
-========================================================
-
-Para este proceso utilizaremos la herramienta ``pgsql2shp``. Con ella podremos convertir los datos de nuestra base de datos en archivos ESRI Shape. Igual que para el caso anterior, la herramienta se utilizará desde la linea de comandos::
-
-	$ pgsql2shp [<opciones>] <basedatos> [<esquema>.]<tabla>
-	$ pgsql2shp [<opciones>] <basedatos> <consulta>
-   
-las opciones serán::
-
-	* **-f <nombrearchivo>**  Especifica el nombre del archivo a crear
-	* **-h <host>**  Indica el servidor donde realizará la conexión
-	* **-p <puerto>**  Permite indicar el puerto de la base de datos
-	* **-P <password>**  Contraseña
-	* **-u <user>** Usuario
-	* **-g <geometry_column>** Columna de geometría que será exportada
-
-Práctica
---------
-
-	.. warning:: TODO	
-
-Exportación desde |PR| a ficheros raster en disco
-=================================================
-
-Usando GDAL
------------
-
-	.. warning:: TODO	
-
-Aquí hablar del driver de PostGIS Raster (nueva versión solo en trunk)
-
-Usando PSQL
------------
-
-	.. warning:: TODO	
-
-Hablar de http://postgis.net/docs/manual-2.1/using_raster_dataman.html#RasterOutput_PSQL 
-También del capítulo 5 del libro de PostGIS 2, apartado "Sharing and visualizing rasters through SQL"
-
 
 Consulta mediante visores web y SIG escritorio
 ==============================================
 
 Mediante el uso de diferentes Software tanto de escritorio como de entorno web, accederemos a los datos que hemos importado y podremos tanto visualizarlos como crear servicios web adaptados de estos datos.
 
-Práctica
-========
-
+Prácticas
+=========
 	.. warning:: TODO
 	
-Aquí se puede cargar en PostGIS el SHP de los barrios de Bogotá, modificarlo para añadirle nombres y datos de población, y visualizarlo en QGIS	
+	
