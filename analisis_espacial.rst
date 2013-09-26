@@ -20,6 +20,12 @@ Es el conjunto de puntos situados a una determinada distancia de la geometría
 	
 Acepta distancias negativas, pero estas en lineas y puntos devolverán el conjunto vacio.
 	
+Práctica
+^^^^^^^^
+
+	.. warning:: TODO
+
+
 	
 Intersección
 ------------
@@ -66,7 +72,32 @@ o una colección de geometrías::
 Práctica
 ^^^^^^^^
 
-	Crear una tabla nueva con los tramos de los rios totales
+	Tratar de simplificar todos los barrios de Bogotá en un único polígono. El aspecto que presenta la tabla con los barrios de Bogotá es el siguiente:
+
+	.. image:: _images/barrios_de_bogota.png
+		:scale: 50%
+
+Una primera aproximación podría ser usar la versión agregada de **ST_Union**, que toma como entrada un conjunto de geometrías y devuelve la unión de las mismas también como geometría. El conjunto de geometrías lo obtenemos gracias al uso de *GROUP BY*, que agrupa las filas por un campo común (en este caso, el campo *city*, que en todos los casos tiene el valor *Bogota*). 
+
+Usamos adicionalmente la función **ST_SnapToGrid** para ajustar la geometría de salida lo más posible a la rejilla regular definida por su origen y su tamaño de celda. 
+
+La consulta SQL es ésta::
+
+	#CREATE TABLE bogota AS
+ 	SELECT ST_Union(ST_SnapToGrid(geom,0.0001)) 
+ 	FROM barrios_de_bogota
+ 	GROUP BY city;
+
+Y el resultado es el conjunto de polígonos, algo más suavizados:
+
+.. image:: _images/bogota_union1.png
+	:scale: 50%
+
+Si queremos intentar simplificar aun más esta geometría, tendríamos dos opciones:
+	
+	* Utilizar GRASS para obtener una simplificación topológica de la geometría
+	* Utilizar la extensión **topology** de PostGIS. Veremos esta aproximación en el apartado dedicado a topología.
+
 	
 Diferencia
 ----------

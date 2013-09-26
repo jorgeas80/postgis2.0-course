@@ -246,8 +246,11 @@ Otra manera de realizar la misma operación pero sin necesidad de transformar lo
 		   );
 
 
-El resultado es el mismo que el de la consulta anterior.
+El resultado es el mismo que el de la consulta anterior. 
 
+El uso del tipo **geography** para medir distancias, no obstante, es el recomendado cuando se trata de medir la distancia entre dos puntos de la Tierra muy distantes entre sí. 
+
+En estos casos, un sistema de refencia plano no es una buena elección. Estos sistemas suelen dar buenos resultados a la hora de mostrar mapas en planos, porque conservan las direcciones, pero las distancias y áreas pueden estar bastante distorsionadas con respecto a la realidad. Es necesario utilizar un sistema de referencia espacial que conserve las distancias, teniendo en cuenta la curvatura terrestre. El tipo **geography** de PostGIS es un buen ejemplo, puesto que realiza los cálculos sobre una esfera, y no sobre un esferoide. 
 
 JOINS espaciales
 ================
