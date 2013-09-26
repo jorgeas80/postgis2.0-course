@@ -252,7 +252,7 @@ Consulta mediante visores web y SIG escritorio
 Mediante el uso de diferentes Software tanto de escritorio como de entorno web, accederemos a los datos que hemos importado y podremos tanto visualizarlos como crear servicios web adaptados de estos datos.
 
 Práctica
---------
+========
 
 	.. warning:: TODO
 	
