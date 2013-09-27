@@ -317,7 +317,7 @@ El uso de las relaciones espaciales junto con funciones de agregacion, como **gr
 Prácticas
 ========
 
-1. Calcula la matriz DE-9IM entre AB y BA para las siguientes figuras:
+Calcula la matriz DE-9IM entre AB y BA para las siguientes figuras:
 
 	.. image:: _images/relations-exec/geoms.png
 		:scale: 50 %
@@ -331,12 +331,12 @@ Prácticas
 	.. image:: _images/relations-exec/geoms4.png
 		:scale: 50 %
 		
-2. Dibuja dos casos de geometrías con las que se obtengan las siguientes matrices:
+Dibuja dos casos de geometrías con las que se obtengan las siguientes matrices:
 
 	* 0F0FFF102
 	* FF2F112F2
 	
-3. Indica la respuesta correcta en los siguientes casos:
+Indica la respuesta correcta en los siguientes casos:
 
 	* **a** ¿En que casos se aplica el predicado Touches?
 	
@@ -362,10 +362,11 @@ Prácticas
 		.. image::  _images/relations-exec/overlaps2.png	
 			:scale: 50 %
 	
-4. Comprueba si estas geometrías son iguales: LINESTRING(0 0, 10 0) Y MULTILINESTRING((10 0, 5 0),(0 0, 5 0)).
+Comprueba si estas geometrías son iguales: LINESTRING(0 0, 10 0) Y MULTILINESTRING((10 0, 5 0),(0 0, 5 0)).
 
-5. Represente como texto el valor de la geometría del barrio 'Ciudad Bolivar'.
+Represente como texto el valor de la geometría del barrio 'Ciudad Bolivar'.
 
-6. ¿En que barrio se encuentra la Plaza de Las Americas? (Pista: buscar en tabla de edificios)
+¿En que barrio se encuentra la Plaza de Las Americas? (Pista: buscar en tabla de edificios)
 
+¿Qué diferencias hay entre los predicados ST_Contains y ST_Covers? (Pista: http://lin-ear-th-inking.blogspot.com.es/2007/06/subtleties-of-ogc-covers-spatial.html)
 

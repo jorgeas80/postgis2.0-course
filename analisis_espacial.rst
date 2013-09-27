@@ -22,9 +22,72 @@ Acepta distancias negativas, pero estas en lineas y puntos devolverán el conjun
 	
 Práctica
 ^^^^^^^^
+El uso de las funciones espaciales de PostGIS en unión con las funciones de agregación de PostgreSQL nos da la posibilidad de realizar análisis espaciales de datos agregados. Una característica muy potente y con diversas utilidades. Como ejemplo, vamos a ver la estimación proporcional de datos censales, usando como criterio la distancia entre elementos espaciales.
 
-	.. warning:: TODO
+Tomemos como base los datos vectoriales de los barrios de Bogotá y los datos vectoriales de vías de ferrocarril (tablas *barrios_de_bogota* y *railways*, respectivamente). Fijémonos en una línea de ferrocarril que cruza 3 barrios (Fontibón, Puente Aranda, Los Mártires)
 
+
+	.. image:: _images/railways_and_neighborhoods.png 
+		:scale: 50%
+
+En la imagen, se han coloreado los polígonos de los barrios, de manera que los colores más claros suponen menos población.
+
+Construyamos ahora un buffer de 1km alrededor de dicha línea de ferrocarril. Es de esperar que las personas que usen la línea sean las que vivan a una distancia razonable. Para ello, creamos una nueva tabla con el buffer::
+
+	#CREATE TABLE railway_buffer as 
+	SELECT 
+		1 as gid, 
+		ST_Transform(ST_Buffer(
+			(SELECT ST_Transform(geom, 21818) FROM railways WHERE gid = 2), 1000, 'endcap=round join=round'), 4326) as geom;
+
+
+Hemos usado la función *ST_Transform* para pasar los datos a un sistema de coordenadas proyectadas que use el metro como unidad de medida, y así poder especificar 1000m. Otra forma habría sido calcular cuántos grados suponen un metro en esa longitud, y usar ese número como parámetro para crear el buffer (más información en http://en.wikipedia.org/wiki/Decimal_degrees). 
+
+Al superponer dicho buffer sobre la línea, el resultado es éste:
+
+	.. image:: _images/railway_buffer.png
+		:scale: 50%
+
+
+
+Como se observa, hay 4 barrios que intersectan con ese buffer. Los tres anteriormente mencionados y Teusaquillo. 
+
+Una primera aproximación para saber la población potencial que usará el ferrocarril sería simplemente sumar las poblaciones de los barrios que el buffer intersecta. Para ello, usamos la siguiente consulta espacial::
+
+	# SELECT SUM(b.population) as pop 
+	FROM barrios_de_bogota b JOIN railway_buffer r 
+	ON ST_Intersects(b.geom, r.geom)
+
+Esta primera aproximación nos da un resultado de **819892** personas. 
+
+No obstante, mirando la forma de los barrios, podemos apreciar que estamos sobre-estimando la población, si utilizamos la de cada barrio completo. De igual forma, si contáramos solo los barrios cuyos centroides intersectan el buffer, probablemente infraestimaríamos el resultado.
+
+En lugar de esto, podemos asumir que la población estará distribuida de manera más o menos homogénea (esto no deja de ser una aproximación, pero más precisa que lo que tenemos hasta ahora). De manera que, si el 50% del polígono que representa a un barrio está dentro del área de influencia (1 km alrededor de la vía), podemos aceptar que el 50% de la población de ese barrio serán potenciales usuarios del ferrocarril. Sumando estas cantidades para todos los barrios involucrados, obtendremos una estimación algo más precisa. Habremos realizado una suma proporcional.
+
+Para realizar esta operación, vamos a construir una función en PL/pgSQL. Esta función la podremos llamar en una query, igual que cualquier función espacial de PostGIS::
+
+	#CREATE OR REPLACE FUNCTION public.proportional_sum(geometry, geometry, numeric)
+  	RETURNS numeric AS
+	$BODY$
+    	SELECT $3 * areacalc FROM
+           (
+           SELECT (ST_Area(ST_Intersection($1, $2))/ST_Area($2))::numeric AS areacalc
+           ) AS areac;
+	$BODY$
+  	LANGUAGE sql VOLATILE
+
+
+Esta función toma como argumentos las dos geometrías a intersectar y el valor total de población del cuál queremos estimar la población proporcional que usará el tren. Devuelve el número con la estimación. La operación que hace es simplemente multiplicar la proporción en la que los barrios se solapan con la zona de interés por la cantidad a *proporcionar* (la población).
+
+La llamada a la función es como sigue::
+
+	# SELECT ROUND(SUM(proportional_sum(a.geom, b.geom, b.population))) FROM
+	railway_buffer AS a, barrios_de_bogota as b
+	WHERE ST_Intersects(a.geom, b.geom)
+	GROUP BY a.gid;
+
+
+En este caso, el resultado obtenido es **248217**, que parece más razonable.
 
 	
 Intersección
@@ -41,20 +104,7 @@ Genera una geometría a partir de la intersección de las geometrías que se les
 	  ST_Buffer('POINT(3 0)', 2)
 	));
 	
-
-Práctica
-^^^^^^^^
-
-	¿Cuál es el área total de páramos contenidos en todos los barrios de Bogotá?
-	Pista: usar las tablas **barrios_de_bogota** y **paramoscundinamarca**
-
-
-	Resultado (BORRAR)::
-
-	#select sum(np.hectares) as total_area_ha 
-	from barrios_de_bogota b join paramoscundinamarca np
-	on st_intersects(b.geom, np.geom)
-	
+		
 Unión
 -----
 Al contrario que en el caso anterior, la unión produce un una geometría común con las geometrías que se le pasa a la función como argumento. Esta función acepta como parámetro dos opciones, las geometrías que serán unidas::
@@ -96,8 +146,7 @@ Y el resultado es el conjunto de polígonos, algo más suavizados:
 Si queremos intentar simplificar aun más esta geometría, tendríamos dos opciones:
 	
 	* Utilizar GRASS para obtener una simplificación topológica de la geometría
-	* Utilizar la extensión **topology** de PostGIS. Veremos esta aproximación en el apartado dedicado a topología.
-
+	* Utilizar la extensión **topology** de PostGIS. Aunque ésta es una geometría dificil de unir. No todos los polígonos están unidos y algunos se montan sobre otros, de manera que habría que jugar con el concepto de tolerancia.
 	
 Diferencia
 ----------
@@ -152,22 +201,18 @@ Para transformar las geometrías en otros sistemas de coordenadas, lo primero qu
 Práctica
 --------
 
-	¿Cuanto mide el rio más largo de la tabla CRI_rios?. Comprobar el sistema de coordenadas original y las medidas para realizar el cálculo.
+	¿Cuál es el área total de páramos contenidos en todos los barrios de Bogotá?
 
+	¿Cuál es la longitud del rio más largo que pasa por el barrio de Suba?
+
+	Muestra el nombre de cada barrio junto con la longitud total de ríos que contiene, ordenado por longitud en orden descendiente
+	
 	¿Cual es la provincia que más longitud de rios contiene?
 	
-	De la capa de reservas naturales extraer en una capa aquellas que son del mismo tipo ``desig``
-	
+	¿Cuál es el área de páramos que contiene **solo** el barrio de San Cristóbal?
+
 	Comprobar la provincia que tiene más superficie de espacios naturales del tipo ``Biological Reserve``
-	
-	Separar en tablas las carreteras en función del tipo (RTT_DESCRI)
 	
 	Calcular las reservas del tipo ``Protective Zone`` que son atravesadas por una carretera de cualquier tipo y calcular la superficie de las zonas separadas
 
-	Unir en una sola zona aquellas zonas protegidas (``Protective Zone``) que pertenezcan a una sola provincia exclusivamente y crear una nueva capa con ellas
-	
-	¿Cuales de las reservas de tipo Refugio natural de vida salvaje (National Wildlife Refuge) tienen parte marina?
-	
-	Crear una tabla con las ciudades de Costa Rica.
-	
 	
