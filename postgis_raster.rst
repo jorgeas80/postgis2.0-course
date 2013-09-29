@@ -60,7 +60,7 @@ Para consultar los metadatos de una tabla mediante el catálogo *raster_columns*
 		nodata_values,
 		out_db,
 		ST_AsText(extent) AS extent
-	FROM raster_columns WHERE r_table_name = 'tmean9';
+	FROM raster_columns WHERE r_table_name = 'tmean9_colombia';
 
 
 Y la salida es:
@@ -76,15 +76,15 @@ Aquí tenemos un ejemplo de cómo obtener los metadatos de una banda de una de l
 	# SELECT
 		rid,
 		(ST_BandMetadata(rast, 1)).*
-	FROM tmean9
-	WHERE rid = 550; 
+	FROM tmean9_colombia
+	WHERE rid = 1265; 
 
 El resultado es como sigue::
 
 
- 	# rid | pixeltype | nodatavalue | isoutdb | path
-	 -----+-----------+-------------+---------+------
- 	  550 | 32BF      |             | f       |
+ 	#  rid | pixeltype | nodatavalue | isoutdb | path
+	 ------+-----------+-------------+---------+------
+ 	  1266 | 32BF      |             | f       |
 
 	
 	
@@ -97,8 +97,8 @@ Si lo que queremos es obtener estadísticas de nuestras capas ráster, podemos h
 	# WITH stats AS (
 		SELECT
 			(ST_SummaryStats(rast, 1)).*
-		FROM tmean9
-		WHERE rid = 19995
+		FROM tmean9_colombia
+		WHERE rid = 1266
 	)
 	SELECT
 		count,
@@ -111,9 +111,9 @@ Si lo que queremos es obtener estadísticas de nuestras capas ráster, podemos h
 
 Y la salida es::
 
-	# count |  sum   |  mean  | stddev | min | max
-	 -------+--------+--------+--------+-----+-----
-  	   1296 | 215103 | 165.97 |   1.50 | 163 | 169
+	# count |  sum   |  mean  |  stddev | min | max
+	 -------+--------+--------+---------+-----+-----
+  	   1296 | 326501 | 251.93 |    7.21 | 223 | 263
 
 
 En la salida, podemos ver que los valores para las temperaturas mínima y máxima no parecen tener sentido. Lo que sucede es que son valores en grados centígrados que han sido escalados por 100. Más información en http://www.prism.oregonstate.edu/docs/meta/temp_realtime_monthly.htm
@@ -126,7 +126,7 @@ MapAlgebra sobre capas |PR|
 
 En el apartado anterior, vimos como los valores de temperaturas de la capa ráster estaban escalados por 100. Vamos a cambiar todos estos valores usando una expresión de MapAlgebra. Para ello, añadiremos una nueva banda con los valores cambiados::
 
-	# UPDATE tmean9 SET
+	# UPDATE tmean9_colombia SET
 		rast = ST_AddBand(
 			rast,
 			ST_MapAlgebraExpr(rast, 1, '32BF', '[rast] / 100.', -9999),
@@ -137,8 +137,8 @@ En la llamada a MapAlgebra, hemos especificado que la banda de salida tendrá un
 
 Tras ejecutar esa consulta, el resultado es éste::
 
-	# ERROR:  new row for relation "tmean9" violates check constraint "enforce_out_db_rast"
-	DETAIL:  Failing row contains (1, 0100000200111111111111813F11111111111181BF00000000008056C0000000..., tmean9.vrt).
+	# ERROR:  new row for relation "tmean9_colombia" violates check constraint "enforce_out_db_rast"
+	DETAIL:  Failing row contains (1, 0100000200563C2A37C011813F18FD8BFEC51081BF00000000426E54C0000000..., tmean9_colombia.tif)
 
 Como vemos, la consulta no ha funcionado. El problema es que, cuando cargamos esta capa ráster usando raster2pgsql, especificamos el flag **-C**. Este flag activa una serie de restricciones en nuestra tabla, para garantizar que todas las columnas de tipo RASTER tienen los mismos atributos (más información en http://postgis.net/docs/manual-2.0/RT_AddRasterConstraints.html).
 
@@ -150,8 +150,139 @@ La solución a nuestro problema pasa por:
 	2. Volver a ejecutar la consulta
 	3. Volver a activar las restricciones (**OJO: Es una operación costosa en datos raster muy grandes**)
 
-Trabajando con raster y geometrías de manera transparente
+
+Las consultas a ejecutar son las siguientes::
+
+	# SELECT DropRasterConstraints('tmean9_colombia', 'rast'::name);
+	# UPDATE tmean9_colombia SET rast = ST_AddBand(rast, ST_MapAlgebra(rast, 1, '32BF', '[rast] / 100.', -9999), 1);
+	# SELECT AddRasterConstraints('tmean9_colombia', 'rast'::name);
+
+Y el resultado es::
+
+	# droprasterconstraints
+	-----------------------
+ 	t
+
+	# UPDATE 2950
+
+	# addrasterconstraints
+	----------------------
+ 	t
+
+
+Ahora comprobaremos que una nueva banda ha sido añadida a nuestro ráster::
+
+	# SELECT
+		(ST_Metadata(rast)).numbands
+	FROM tmean9_colombia
+	WHERE rid = 1266;
+
+Devuelve::
+
+	# numbands
+	----------
+	2
+
+
+¿Y cuáles son los detalles de esas dos bandas?::
+
+	# WITH stats AS (
+		SELECT
+			1 AS bandnum,
+			(ST_SummaryStats(rast, 1)).*
+		FROM tmean9_colombia
+		WHERE rid = 1266
+		UNION ALL
+		SELECT
+			2 AS bandnum,
+			(ST_SummaryStats(rast, 2)).*
+		FROM tmean9_colombia
+		WHERE rid = 1266
+	)
+
+	SELECT
+		bandnum,
+		count,
+		round(sum::numeric, 2) AS sum,
+		round(mean::numeric, 2) AS mean,
+		round(stddev::numeric, 2) AS stddev,
+		round(min::numeric, 2) AS min,
+		round(max::numeric, 2) AS max
+	FROM stats
+	ORDER BY bandnum;
+
+El resultado es::
+
+	# bandnum | count |    sum    |  mean  | stddev |  min   |  max
+	 ---------+-------+-----------+--------+--------+--------+--------
+      		1 |  1296 | 326501.00 | 251.93 |   7.21 | 223.00 | 263.00
+       		2 |  1296 |   3265.01 |   2.52 |   0.07 |   2.23 |   2.63
+
+Vemos que el valor en la banda 2 ha sido corregido, dividiendo los valores de temperaturas entre 100. Ahora las temperaturas tienen sentido como grados centígrados
+
+
+Trabajando con ráster y geometrías al mismo tiempo
 =========================================================
+
+Una de las grandes ventajas de poder tener datos de naturaleza ráster y vectorial cargados en |PG| es que se puede operar con ellos mediante la utilización de la misma API SQL. En este ejemplo, veremos como *recortar* un raster usando una geometría como modelo.
+
+Trabajaremos con los datos ráster de temperaturas, y con los datos vectoriales de Colombia. Como vemos en esta imagen (coloreada con pseudocolor en QGIS 2.0), el ráster ocupa bastante más extensión que Colombia:
+
+	.. image:: _images/raster_with_vector.png
+		:scale: 30 %
+
+Lo que queremos es *recortar* la parte del ráster que queda dentro de los límites de Colombia. Y lo haremos únicamente con **consultas SQL**. Posteriormente, volcaremos ese ráster recortado a disco, en formato GeoTIFF.
+
+La consulta que se queda solamente con la parte del ráster comprendida dentro de los límites de Colombia es::
+
+	# CREATE TABLE tmean9_colombia_clip AS 
+	SELECT t.rid, t.rast, c.admin_name 
+	FROM tmean9_colombia t JOIN co c ON ST_Intersects(t.rast, c.geom)
+
+Con esa consulta hemos logrado crear una tabla con datos ráster **únicamente** comprendidos dentro de los límites de Colombia. Para visualizar esa tabla, tenemos dos opciones. Ambas requieren de **GDAL 2.0**
+
+	* Volcar el contenido de la tabla a disco, a formato GeoTIFF, mediante el uso de *gdal_translate* http://www.gdal.org/gdal_translate.html
+	* Instalar en QGIS el plugin de visualización de PostGIS Raster. El problema es que **aun no se ha portado el plugin a la versión 2.0 de QGIS**
+
+Elegimos la primera opción, por no requerir la instalación de ningún software adicional. La orden que debemos ejecutar es::
+
+	# gdal_translate PG:"host=localhost port=5432 dbname=taller_semana_geomatica user=postgres password=postgres table=tmean9_colombia_clip mode=2" tmean9_colombia_clip.tif
+
+
+Y el aspecto de este ráster recortado una vez colocado sobre el mapa y coloreado con pseudocolor en QGIS 2.0 es:
+
+.. image:: _images/postgis_raster_clipped.png
+	:scale: 30 %
+
+
+Combinando raster y geometrías para análisis espacial
+=====================================================
+
+Vamos a ver ahora cuáles fueron las temperaturas máximas, mínimas y medias de todos los barrios de Bogotá durante el mes de Septiembre. Para ello, usaremos nuevamente la API SQL de |PG| y |PR| junto con las funciones de agregación de PostgreSQL.
+
+La consulta a realizar es la siguiente::
+
+	..WARNING: TODO
+
+Acabarlo. hay que coger de estas dos consultas
+
+SELECT (
+        ST_SummaryStats(
+                ST_Union(
+                        ST_Clip(tmean9_colombia_clip.rast, 2, b.geom, TRUE)
+                ),
+                1
+        )
+).*
+FROM tmean9_colombia_clip
+JOIN barrios_de_bogota b
+        ON ST_Intersects(tmean9_colombia_clip.rast, b.geom)
+
+
+WITH stats AS (SELECT rast, (ST_SummaryStats(rast, 2)).* FROM tmean9_colombia_clip) select b.name, s.* from stats s join barrios_de_bogota b on st_intersects(b.geom, s.rast)
+order by b.name
+
+
 
 Procesando y cargando raster con GDAL VRT
 =========================================
