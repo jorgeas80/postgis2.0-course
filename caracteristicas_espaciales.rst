@@ -11,22 +11,33 @@ Para el curso que nos compete realizaremos las prácticas con la versión 2.0 de
  
 Instalación y configuración de |PG|
 ===================================
-Como ya se ha comentado la instalación de |PG| en su versión |PG_VERSION| la realizaremos desde los repositorios de nuestro sistema operativo.
 
-Una vez que hayamos instalado PostgreSQL en nuestro equipo podremos instalar |PG| mediante::
+En función del sistema operativo que estemos usando, la instalación será de una forma u otra. Como ya hemos mencionado, vamos a contemplar tres sistemas operativos:
 
-	$ sudo apt-get install postgresql-9.1-postgis postgis
-	
-De esta manera estaremos instalando los objetos, funciones y scripts necesarios para poder utilizar las componentes geográficas de nuestro SGBD |PSQL|. 
+	* Sistemas Windows XP/7
+	* Sistemas Mac OS X
+	* Sistemas basados en Debian
+
+Windows
+-------
+
+
+Mac OS X
+--------
+
+
+Debian/Ubuntu/Derivados
+-----------------------
+
+
 
 Espacialización de una base de datos
 ------------------------------------
-Módulo principal y vectorial
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 La integración de |PG| con |PSQL| está hecha en el lenguaje PL/PGSQL, por
 lo que para dotar de capacidades espaciales una base de datos existente es necesario
-primero añadir soporte para este lenguaje. Esto es necesario para versiones de |PSQL| anteriores a la 9.1::
+primero añadir soporte para este lenguaje. Esto es necesario para versiones de |PSQL| anteriores a la 8.4::
 
 	$ createlang plpgsql curso
 
@@ -36,6 +47,11 @@ primero añadir soporte para este lenguaje. Esto es necesario para versiones de 
 .. image:: _images/postgis-images/pre-postgis-2.png
 	   :scale: 50 %
 	   
+Hecho esto, la instalación de |PG| se hará de una forma u otra, en función de si estamos usando una versión de |PSQL| anterior a la 9.1 o no.
+
+Instalación de |PG| en versión de |PSQL| inferior a 9.1
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 A continuación hay que localizar dos ficheros SQL de PostGIS que al ejecutarse
 añadiran las estructuras necesarias a nuestra base de datos. Estos ficheros
 se llaman *lwpostgis.sql* (o símplemente *postgis.sql*) y *spatial_ref_sys.sql*.
@@ -100,9 +116,21 @@ La tabla *geometry_columns* es un catálogo de las columnas espaciales existente
 Podremos comprobar la versión que tenemos instalada de |PG| mediante::
 
 	# SELECT postgis_full_version();
+
+
+
+Instalación de |PG| en versión de |PSQL| 9.1 o superior
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Si se cuenta con |PSQL| 9.1 o superior, podremos utilizar la expresión **CREATE EXTENSION**. 
+
+De manera que instalar |PG| será tan sencillo como::
+
+	# CREATE EXTENSION postgis;
+
 	
 Creación de una plantilla template_postgis
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------------------------
 
 Podremos utilizar la base de datos creada inicialmente como plantilla para la posterior creación de bases de datos espaciales evitando tener que repetir el proceso. Para ello simplemente::
 
@@ -153,10 +181,16 @@ implementado por PostGIS.
 
 Otros módulos
 =============
-En la versión 2.0 de |PG| se incorporan dos módulos nuevos dentro del núcleo del producto, el módulo *Raster* y el módulo de *Topología persistente*. 
+En la versión 2.0 de |PG| se incorporan dos módulos nuevos dentro del núcleo del producto, el módulo *Raster* y el módulo de *Topología persistente*. En función de si estamos usando una versión de PostgreSQL inferior a la 9.1 o no, instalaremos ambos módulos de una forma u otra.
+
+
+Instalación de módulos en PostgreSQL inferior a versión 9.1
+----------------------------------------------------------- 
+
+Deberemos instalar cada módulo cargando ficheros PL/pgSQL. Lo haremos mediante la herramienta de línea de comandos *psql*
 
 Raster
-------
+^^^^^
 
 Este módulo se encarga de gestionar la información raster siguiendo la misma filosofía que el tipo geometry y permitiendo análisis raster y mezclar información raster y vectorial en el análisis.
 
@@ -166,9 +200,19 @@ La instalación de este módulo es similar a la instalación de |PG| realizandos
 	$ psql -U postgres -f path_raster_comments.sql -d [nombre_base_datos]
 	
 Topologia persistente
----------------------
+^^^^^^^^^^^^^^^^^^^^
 
 Este es una forma de estructurar la información geográfica de manera diferente al modelo *simple features*. Se instala de manera opcional y no se tratará en este curso por exceder los objetivos del mismo.
+
+
+Instalación de módulos en PostgreSQL inferior a versión 9.1
+----------------------------------------------------------- 
+
+Como sucede al instalar la extensión |PG|, si contamos con |PSQL| 9.1 o superior, basta con que instalemos los siguientes comandos::
+
+	# CREATE EXTENSION postgis_raster;
+	# CREATE EXTENSION postgis_topology;
+
 
 Prácticas
 =========

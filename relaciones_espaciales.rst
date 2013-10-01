@@ -317,51 +317,7 @@ El uso de las relaciones espaciales junto con funciones de agregacion, como **gr
 Prácticas
 ========
 
-Calcula la matriz DE-9IM entre AB y BA para las siguientes figuras:
 
-	.. image:: _images/relations-exec/geoms.png
-		:scale: 50 %
-	
-	.. image:: _images/relations-exec/geoms2.png
-		:scale: 50 %
-		
-	.. image:: _images/relations-exec/geoms3.png
-		:scale: 50 %
-			
-	.. image:: _images/relations-exec/geoms4.png
-		:scale: 50 %
-		
-Dibuja dos casos de geometrías con las que se obtengan las siguientes matrices:
-
-	* 0F0FFF102
-	* FF2F112F2
-	
-Indica la respuesta correcta en los siguientes casos:
-
-	* **a** ¿En que casos se aplica el predicado Touches?
-	
-		.. image::  _images/relations-exec/touches1.png
-			:scale: 50 %
-		
-		.. image::  _images/relations-exec/touches2.png	
-			:scale: 50 %	
-			
-	* **b** ¿Y el predicado Crosses?
-	
-		.. image::  _images/relations-exec/crosses1.png
-			:scale: 50 %
-		
-		.. image::  _images/relations-exec/crosses2.png	
-			:scale: 50 %	
-			
-	* **c** ¿Comprueba en que casos se aplica el predicado Overlaps?
-	
-		.. image::  _images/relations-exec/overlaps1.png
-			:scale: 50 %
-		
-		.. image::  _images/relations-exec/overlaps2.png	
-			:scale: 50 %
-	
 Comprueba si estas geometrías son iguales: LINESTRING(0 0, 10 0) Y MULTILINESTRING((10 0, 5 0),(0 0, 5 0)).
 
 Represente como texto el valor de la geometría del barrio 'Ciudad Bolivar'.

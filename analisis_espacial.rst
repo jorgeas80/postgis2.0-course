@@ -211,8 +211,4 @@ Práctica
 	
 	¿Cuál es el área de páramos que contiene **solo** el barrio de San Cristóbal?
 
-	Comprobar la provincia que tiene más superficie de espacios naturales del tipo ``Biological Reserve``
-	
-	Calcular las reservas del tipo ``Protective Zone`` que son atravesadas por una carretera de cualquier tipo y calcular la superficie de las zonas separadas
-
 	

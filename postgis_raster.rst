@@ -30,6 +30,54 @@ Este enfoque hace a |PR| una herramienta muy poderosa, aunque también tiene alg
 
 En los siguientes apartados, veremos algunas de las operaciones que se pueden realizar con |PR|
 
+
+Procesando y cargando raster con GDAL VRT
+=========================================
+
+Como ya hemos visto en el capítulo de importación y exportación, la manera de cargar datos ráster en |PR| es a través de *raster2pgsql*. En este capítulo, trabajaremos con datos sobre las temperaturas en Colombia durante el mes de Septiembre del año 2010. 
+
+Tenemos datos relativos a todas las zonas del planeta y varios meses disponibles en la url http://www.worldclim.org. Las zonas que nos interesan a nosotros son 2: zona 23 y zona 33. La zona 23 contiene los datos de la mayor parte de Colombia, y el resto está en la zona 33. Las url de descarga de datos de esas zonas son:
+
+	* http://www.worldclim.org/tiles.php?Zone=23
+	* http://www.worldclim.org/tiles.php?Zone=33
+
+Los datos en si son ficheros GeoTIFF con una sola banda. Aquí vemos ambos fragmentos visualizados en QGIS:
+
+
+	.. image:: _images/temperaturas_colombia.png
+		:scale: 50 %
+
+Podríamos cargar los ficheros GeoTIFF por separado en una misma tabla, mediante dos llamadas a *raster2pgsql*, pero lo que vamos a hacer es construir un raster virtual en formato VRT, y cargar ese ráster en |PR| con una única llamada a *raster2pgsql*. Lo haremos en 3 pasos:
+
+	1. Construir fichero VRT a partir de los ficheros TIFF con *gdalbuildvrt*:: 
+
+		# gdalbuildvrt tmean9.vrt tmean9_*.tif
+
+	2. Crear el fichero SQL a partir del fichero VRT generado en el paso anterior::
+
+		# raster2pgsql -I -C -F -t 36x36 -P -M -s 4326 tmean9.vrt > tmean9.sql
+
+	3. Cargar el fichero SQL en |PR|::
+
+		# psql -d taller_semana_geomatica -f tmean9.sql -U postgres
+
+Con eso ya tendríamos ambos ficheros cargados en |PR|
+
+Un problema que tenemos ahora es que los ficheros GeoTIFF tienen muchos más datos que simplemente los datos de Colombia. Es por eso que, para los siguientes apartados, vamos a *recortar* una parte del fichero GeoTIFF, que comprenda solo Colombia, y cargaremos esa parte en |PR|, con el nombre *tmean9_colombia*.
+
+El recorte se hará usando la herramienta *clipper* de QGIS, que no es más que una interfaz gráfica de usuario para llamar a gdal_translate pasándole las coordenadas de inicio y fin y la altura y anchura del rectángulo a obtener. A pesar de que esta operación se realizará en clase, no se profundizará en ella, por exceder de los límites del curso. Se realiza únicamente para justificar la existencia de la tabla utilizada en los ejemplos posteriores.
+
+La imagen recortada queda así (se ha aplicado un pseudo-color a la capa para apreciar el contorno de Colombia dentro del fichero GeoTiff):
+
+ 
+	.. image:: _images/temperaturas_recorte_colombia.png
+		:scale: 50 %
+
+Bastante más pequeña y manejable. 
+
+De todas formas, aun podemos afinar más esta operación de recorte. En un apartado posterior veremos como utilizar la geometría que define los límites de Colombia como *molde* para quedarnos únicamente con la porción del ráster contenida dentro de esos límites.
+
+
 Obtención de metadatos y estadísticas de una capa |PR|
 ======================================================
 
@@ -221,7 +269,7 @@ El resultado es::
 Vemos que el valor en la banda 2 ha sido corregido, dividiendo los valores de temperaturas entre 100. Ahora las temperaturas tienen sentido como grados centígrados
 
 
-Trabajando con ráster y geometrías al mismo tiempo
+Clip de datos ráster usando geometrías
 =========================================================
 
 Una de las grandes ventajas de poder tener datos de naturaleza ráster y vectorial cargados en |PG| es que se puede operar con ellos mediante la utilización de la misma API SQL. En este ejemplo, veremos como *recortar* un raster usando una geometría como modelo.
@@ -229,7 +277,7 @@ Una de las grandes ventajas de poder tener datos de naturaleza ráster y vectori
 Trabajaremos con los datos ráster de temperaturas, y con los datos vectoriales de Colombia. Como vemos en esta imagen (coloreada con pseudocolor en QGIS 2.0), el ráster ocupa bastante más extensión que Colombia:
 
 	.. image:: _images/raster_with_vector.png
-		:scale: 30 %
+		:scale: 50 %
 
 Lo que queremos es *recortar* la parte del ráster que queda dentro de los límites de Colombia. Y lo haremos únicamente con **consultas SQL**. Posteriormente, volcaremos ese ráster recortado a disco, en formato GeoTIFF.
 
@@ -262,30 +310,43 @@ Vamos a ver ahora cuáles fueron las temperaturas máximas, mínimas y medias de
 
 La consulta a realizar es la siguiente::
 
-	..WARNING: TODO
+	# WITH stats AS (
+		SELECT rast, (ST_SummaryStats(rast, 2)).* 
+		FROM tmean9_colombia_clip
+	) 
 
-Acabarlo. hay que coger de estas dos consultas
+	SELECT 
+		b.name, 
+		ROUND(AVG(s.mean::numeric), 2) AS tmean, 
+		ROUND(AVG(s.min::numeric), 2) as tmin, 
+		ROUND(AVG(s.max::numeric), 2) as tmax 
+	FROM stats s JOIN barrios_de_bogota b ON ST_Intersects(s.rast, b.geom)
+	GROUP BY b.name
+	ORDER BY b.name
 
-SELECT (
-        ST_SummaryStats(
-                ST_Union(
-                        ST_Clip(tmean9_colombia_clip.rast, 2, b.geom, TRUE)
-                ),
-                1
-        )
-).*
-FROM tmean9_colombia_clip
-JOIN barrios_de_bogota b
-        ON ST_Intersects(tmean9_colombia_clip.rast, b.geom)
+El resultado es el siguiente::
+
+	# 	  name      | tmean | tmin | tmax
+	----------------+-------+------+------
+ 	 Antonio Nariño |  1.19 | 0.63 | 2.04
+ 	 Barrios Unidos |  1.25 | 0.79 | 1.72
+ 	 Bosa           |  1.39 | 0.66 | 2.23
+ 	 Chapinero      |  1.25 | 0.79 | 1.72
+ 	 Ciudad Bolívar |  1.19 | 0.63 | 2.04
+ 	 Ciudad Kennedy |  1.19 | 0.63 | 2.04
+ 	 Engativá       |  1.25 | 0.79 | 1.72
+ 	 Fontibón       |  1.25 | 0.79 | 1.72
+ 	 Los Mártires   |  1.19 | 0.63 | 2.04
+ 	 Puente Aranda  |  1.19 | 0.63 | 2.04
+ 	 Rafael Uribe   |  1.19 | 0.63 | 2.04
+ 	 San Cristóbal  |  1.19 | 0.63 | 2.04
+ 	 Santa Fé       |  1.19 | 0.63 | 2.04
+ 	 Suba           |  1.30 | 0.96 | 1.41
+	 Sumapáz        |  1.10 | 0.46 | 2.19
+ 	 Teusaquillo    |  1.19 | 0.63 | 2.04
+ 	 Tunjuelito     |  1.19 | 0.63 | 2.04
+ 	 Usaquén        |  1.25 | 0.79 | 1.72
+ 	 Usme           |  1.08 | 0.56 | 2.08
 
 
-WITH stats AS (SELECT rast, (ST_SummaryStats(rast, 2)).* FROM tmean9_colombia_clip) select b.name, s.* from stats s join barrios_de_bogota b on st_intersects(b.geom, s.rast)
-order by b.name
 
-
-
-Procesando y cargando raster con GDAL VRT
-=========================================
-
-Reproyección y remuestreo
-=========================
