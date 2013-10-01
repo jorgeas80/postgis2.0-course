@@ -86,6 +86,8 @@ La función *ST_MakeValid* es más apropiada para arreglar geometrías. Únicame
 
 	# SELECT postgis_full_version()
 
+Si se tiene una versión de GEOS inferior a la 3.3.0, se pueden seguir los consejos de Paul Ramsey: http://blog.opengeo.org/2010/09/08/tips-for-the-postgis-power-user/
+
 Para comprobar el funcionamiento de *ST_MakeValid* vamos a crear una tabla nueva donde almacenemos únicamente uno de los polígonos conflictivos, marcado como *erroneo*. A continuación, crearemos un nuevo registro en dicha tabla con el polígono corregido. 
 
 Para hacerlo, ejecutemos esta query, que es algo compleja. Como sabemos que el problema es una auto-intersección que forma un anillo, vamos a *desmontar* la geometría en su lista de anillos y quedarnos solo con aquel que intersecta con el punto donde se detectó el error::
@@ -103,10 +105,26 @@ Con eso hemos creado la tabla *invalid_geometries* y añadido el anillo que cont
 	# INSERT INTO invalid_geometries
 	VALUES ('repaired', (SELECT ST_MakeValid(the_geom) FROM invalid_geometries));
 
-La función ST_MakeValid, realmente solo ha añadido un anillo más a la geometría inválida, para hacerla válida
+La función ST_MakeValid, realmente solo ha añadido un anillo más a la geometría inválida, para hacerla válida. Lo podemos comprobar con::
 
+	# SELECT status, ST_NRings(the_geom) FROM invalid_geometries;
 
-Tolerancia en el análisis espacial
-==================================
-Validación de las geometrias
-============================
+Que devuelve::
+
+	# status  | st_nrings
+	----------+-----------
+   	 broken   |         1
+ 	 repaired |         2
+
+Ahora que ya hemos comprobado cómo funciona *ST_MakeValid*, podemos arreglar todas las geometrías inválidas::
+
+	# UPDATE tm_world_borders
+	SET the_geom = ST_MakeValid(the_geom)
+	WHERE ST_IsValid(the_geom) = false;
+
+Una manera de evitar tener tablas con geometrías inválidas es definir una *constraint* que lo impida::
+
+	# ALTER TABLE tm_world_borders
+	ADD CONSTRAINT geometry_valid_check
+	CHECK (ST_IsValid(geom));
+
